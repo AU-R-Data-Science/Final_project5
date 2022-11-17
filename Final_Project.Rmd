@@ -9,3 +9,9 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+```{r}
+setwd("~/GitHub/Final_project5")
+data <- read.csv("crop.data.csv")
+
+```
+
