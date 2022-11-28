@@ -10,12 +10,15 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r}
-setwd("~/GitHub/Final_project5")
-data <- read.csv("crop.data.csv")
+#setwd("~/GitHub/Final_project5")
+data <- read.csv("~/Documents/GitHub/Final_project5/crop.data.csv")
 summary(data)
 nrow(data)
 library(ggplot2)
 library(dplyr)
+```
+
+```{r}
 #sigmoid function, inverse of logit
 sigmoid <- function(z){1/(1+exp(-z))}
 #cost function
@@ -25,6 +28,7 @@ cost <- function(theta, X, y){
   J <- (t(-y)%*%log(h)-t(1-y)%*%log(1-h))/m
   J
 }
+# gradient vector
 grad <- function(theta, X, y){
   m <- length(y) 
   
@@ -39,7 +43,7 @@ logisticReg <- function(X, y){
   X <- na.omit(X)
   y <- na.omit(y)
   #add bias term and convert to matrix
-  X <- mutate(X, bias =1)
+  X <- mutate(X, bias = 1)
   #move the bias column to col1
   X <- as.matrix(X[, c(ncol(X), 1:(ncol(X)-1))])
   y <- as.matrix(y)
@@ -70,7 +74,7 @@ logisticPred <- function(prob){
 
 ```{r, message=FALSE, warning=FALSE}
 N <- 96 # number of points per class
-D <- 2 # dimensionality, we use 2D data for easy visulization
+D <- 2 # dimensionality, we use 2D data for easy visualization
 K <- 2 # number of classes, binary for logistic regression
 X <- data.frame() # data matrix (each row = single example, can view as xy coordinates)
 y <- data.frame() # class labels
@@ -113,16 +117,10 @@ gridPred = cbind(grid, Z)
 
 ```{r, message=FALSE, warning=FALSE}
 # decision boundary visualization
-ggplot() +   
-  geom_point(data = data, aes(x=x1, y=x2, color = as.character(label)), size = 2, show.legend = F) + 
-  geom_tile(data = gridPred, aes(x = grid[, 1],y = grid[, 2], fill=as.character(Z)), 
-            alpha = 0.3, show.legend = F) + ylim(0, 3) +
-  ggtitle('Decision Boundary for Logistic Regression') +
-  coord_fixed(ratio = 1) +
-  theme_bw(base_size = 12) 
+ggplot() +  geom_point(data = data, aes(x=x1, y=x2, color = as.character(label)), size = 2, show.legend = F) + geom_tile(data = gridPred, aes(x = grid[, 1],y = grid[, 2], fill=as.character(Z)), alpha = 0.3, show.legend = F) + ylim(0, 3) + ggtitle('Decision Boundary for Logistic Regression') + coord_fixed(ratio = 1) + theme_bw(base_size = 12) 
 ```
 
-from here down this uses an already made package and is not running correcrtly yet
+from here down this uses an already made package and is not running correctly yet
 ```{r}
 library(ggplot2)
 
@@ -205,3 +203,14 @@ data$coefficients
 
 confusionMatrix(as.factor(round(logisticPred())), as.factor(data$yield))
 ```
+ #### trying to build a confusion matrix, work in progress
+ 
+```{r}
+actual_values = matrix(c("T", "T", "T", "T", "F", "F","F"), ncol=1)
+predict_value = matrix(c("T", "F", "T", "T", "F", "T","F"), ncol=1)
+table(actual_values,predict_value)
+```
+ 
+
+
+
