@@ -443,13 +443,37 @@ describe their log odds.</p>
 <div id="comparing-our-self-built-model-with-glm-function." class="section level5">
 <h5>Comparing our self-built model with <code>glm()</code>
 function.</h5>
-<pre class="r"><code>true.model &lt;- glm(as.factor(y) ~ x1 + x2 + x3, family=binomial(link =&quot;logit&quot;), data = data)
+<pre class="r"><code>true.model &lt;- glm(y ~ x1 + x2 + x3, family=binomial(link =&quot;logit&quot;), data = data)
 summary(true.model)$coefficients</code></pre>
 <pre><code>##                Estimate Std. Error     z value  Pr(&gt;|z|)
 ## (Intercept) -0.39876091  0.9628408 -0.41415039 0.6787640
 ## x1           0.16428813  0.2205767  0.74481188 0.4563855
 ## x2           0.10885965  0.1031095  1.05576775 0.2910743
 ## x3          -0.05901738  1.5509174 -0.03805321 0.9696453</code></pre>
+</div>
+<div id="a-prediction-function-that-will-output-the-probability-of-getting-1." class="section level5">
+<h5>A prediction function that will output the probability of getting
+1.</h5>
+<pre class="r"><code>bhat.predict &lt;- function(model, X){
+  X &lt;- na.omit(X)
+  #add bias term and convert to matrix
+  X &lt;- mutate(X, bias =1)
+  X &lt;- as.matrix(X[,c(ncol(X), 1:(ncol(X)-1))])
+  return(sigmoid(X%*%model))
+}</code></pre>
+</div>
+<div id="generating-a-new-data-grid-to-see-how-y-changes-with-predictors." class="section level5">
+<h5>Generating a new data grid to see how <code>y</code> changes with
+predictors.</h5>
+<pre class="r"><code>set.seed(50)
+n= 20
+newdata &lt;- data.frame(x1 =rpois(n,lambda = 3), x2 =runif(n,-1, 1), x3 = rexp(n, rate= 5) )
+
+y.prediction &lt;- bhat.predict(model, newdata)</code></pre>
+<pre class="r"><code>pred &lt;- ifelse(y.prediction &gt; 0.5, &quot;1&quot;, &quot;0&quot;)</code></pre>
+</div>
+<div id="confusion-matrix" class="section level4">
+<h4>Confusion matrix</h4>
 </div>
 
 

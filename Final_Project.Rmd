@@ -84,6 +84,33 @@ The first number is the intercept. The next three numbers are the coefficient of
 true.model <- glm(y ~ x1 + x2 + x3, family=binomial(link ="logit"), data = data)
 summary(true.model)$coefficients
 ```
+##### A prediction function that will output the probability of getting 1.
+```{r}
+bhat.predict <- function(model, X){
+  X <- na.omit(X)
+  #add bias term and convert to matrix
+  X <- mutate(X, bias =1)
+  X <- as.matrix(X[,c(ncol(X), 1:(ncol(X)-1))])
+  return(sigmoid(X%*%model))
+}
+```
+
+#####  Generating a new data grid to see how `y` changes with predictors.
+```{r}
+set.seed(50)
+n= 20
+newdata <- data.frame(x1 =rpois(n,lambda = 3), x2 =runif(n,-1, 1), x3 = rexp(n, rate= 5) )
+
+y.prediction <- bhat.predict(model, newdata)
+```
+```{r}
+pred <- ifelse(y.prediction > 0.5, "1", "0")
+```
+#### Confusion matrix
+```{r}
+
+```
+
 
 
 
