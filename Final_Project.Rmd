@@ -12,11 +12,6 @@ library(caret)
 library(lattice)
 ```
 
-#```{r}
-#data <- read.csv("~/Documents/GitHub/Final_project5/crop.data.csv")
-head(data)
-#```
-
 ```{r}
 #Pi function defined as p, inverse of logit
 Pi <- function(z){1/(1+exp(-z))} 
@@ -59,13 +54,13 @@ beta_hat <- function(X, y){
 ```
 ##### Training our model with our generated dataset
 ```{r}
-set.seed(7)
-n <- 20
+set.seed(8)
+y <- sample(c(0,1), size = 20, replace = TRUE)
+n <- length(y)
 x1 <- rpois(n, lambda = 3)
 x2 <- rnorm(n, -3, 5)
 x3 <- rexp(n, rate = 2)
 int <- rep(1, n)
-y <- c(rep(1,3), rep(0,3),rep(1,4),rep(0,3),0,1,0,1,1,0,0)
 X <- cbind(x1, x2, x3)
 data <- data.frame(y, X)
 data.X <- data[, -1]
@@ -84,17 +79,8 @@ The first number is the intercept. The next three numbers are the coefficient of
 true.model <- glm(y ~ x1 + x2 + x3, family=binomial(link ="logit"), data = data)
 summary(true.model)$coefficients
 ```
-##### A prediction function that will output the probability of getting 1.
+##### Prediction function.
 ```{r}
-pred <- function(Pi){
-  ifelse(Pi > 0.5, 1, 0)
-  pred
-}
-as.vector(Pi)
-typeof(Pi)
-
-
-
 bhat.predict <- function(model, X){
   X <- na.omit(X)
   #add bias term and convert to matrix
@@ -104,20 +90,32 @@ bhat.predict <- function(model, X){
 }
 ```
 
-#####  Generating a new data grid to see how `y` changes with predictors.
+##### Function for the confusion matrix
 ```{r}
-set.seed(50)
-n= 20
+confM <- function(X, Y){
+  y.prediction <- bhat.predict(model, X)
+  glm.pred = rep ("0",length(Y))
+  glm.pred[y.prediction > 0.5]="1"
+  gpp <- factor(glm.pred)
+  newy <- factor(Y)
+ return(confusionMatrix(data = gpp, reference = newy)) 
+}
+```
+
+#####  Test data.
+```{r}
+set.seed(51)
+n = length(y)
 newdata <- data.frame(x1 =rpois(n,lambda = 3), x2 =runif(n,-1, 1), x3 = rexp(n, rate= 5) )
-
-y.prediction <- bhat.predict(model, newdata)
+newy <- sample(c(0,1), size = n, replace = TRUE)
 ```
-```{r}
-pred <- ifelse(y.prediction > 0.5, "1", "0")
-```
-#### Confusion matrix
-```{r}
 
+##### Outputs from the confusion matrix
+```{r}
+conf.mat <- confM(newdata,newy)
+paste("False Discovery Rate is", conf.mat$table[1,2]/(conf.mat$table[1,1] + conf.mat$table[1,2]))
+paste("Diagnositic odds Ratio is", (conf.mat$table[1,1]*conf.mat$table[2,2])/(conf.mat$table[1,2]*conf.mat$table[2,1]))
+conf.mat
 ```
 
 
