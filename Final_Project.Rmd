@@ -18,14 +18,14 @@ head(data)
 #```
 
 ```{r}
-#sigmoid function defined as p, inverse of logit
-sigmoid <- function(z){1/(1+exp(-z))} 
+#Pi function defined as p, inverse of logit
+Pi <- function(z){1/(1+exp(-z))} 
 
 #objective function to be minimized
 obj_fn <- function(beta, X, y){
   n <- length(y) # number of training examples
 
-  p <- sigmoid(X%*%beta)
+  p <- Pi(X%*%beta)
   J <- (t(-y)%*%log(p)-t(1-y)%*%log(1-p))/n
   J
 }
@@ -35,7 +35,7 @@ obj_fn <- function(beta, X, y){
 #gradient function
 grad <- function(beta, X, y){
   n <- length(y)
-  p <- sigmoid(X%*%beta)
+  p <- Pi(X%*%beta)
   grad <- (t(X)%*%(p - y))/n
   grad
 }
@@ -86,12 +86,21 @@ summary(true.model)$coefficients
 ```
 ##### A prediction function that will output the probability of getting 1.
 ```{r}
+pred <- function(Pi){
+  ifelse(Pi > 0.5, 1, 0)
+  pred
+}
+as.vector(Pi)
+typeof(Pi)
+
+
+
 bhat.predict <- function(model, X){
   X <- na.omit(X)
   #add bias term and convert to matrix
   X <- mutate(X, bias =1)
   X <- as.matrix(X[,c(ncol(X), 1:(ncol(X)-1))])
-  return(sigmoid(X%*%model))
+  return(Pi(X%*%model))
 }
 ```
 
