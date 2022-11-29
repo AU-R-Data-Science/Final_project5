@@ -81,7 +81,7 @@ The first number is the intercept. The next three numbers are the coefficient of
 
 ##### Comparing our self-built model with `glm()` function.
 ```{r}
-true.model <- glm(as.factor(y) ~ x1 + x2 + x3, family=binomial(link ="logit"), data = data)
+true.model <- glm(y ~ x1 + x2 + x3, family=binomial(link ="logit"), data = data)
 summary(true.model)$coefficients
 ```
 
