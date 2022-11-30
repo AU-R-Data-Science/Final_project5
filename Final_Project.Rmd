@@ -14,9 +14,27 @@ library(lattice)
 
 ```{r}
 #Pi function defined as p, inverse of logit
+#' Title
+#'
+#' @param z 
+#'
+#' @return
+#' @export
+#'
+#' @examples
 Pi <- function(z){1/(1+exp(-z))} 
 
 #objective function to be minimized
+#' Title
+#'
+#' @param beta 
+#' @param X 
+#' @param y 
+#'
+#' @return
+#' @export
+#'
+#' @examples
 obj_fn <- function(beta, X, y){
   n <- length(y) # number of training examples
 
@@ -28,6 +46,16 @@ obj_fn <- function(beta, X, y){
 
 ```{r}
 #gradient function
+#' Title
+#'
+#' @param beta 
+#' @param X 
+#' @param y 
+#'
+#' @return
+#' @export
+#'
+#' @examples
 grad <- function(beta, X, y){
   n <- length(y)
   p <- Pi(X%*%beta)
@@ -37,6 +65,15 @@ grad <- function(beta, X, y){
 ```
 
 ```{r}
+#' Title
+#'
+#' @param X 
+#' @param y 
+#'
+#' @return
+#' @export
+#'
+#' @examples
 beta_hat <- function(X, y){
   #remove NA rows
   temp <- na.omit(cbind(y, X))
@@ -81,6 +118,15 @@ summary(true.model)$coefficients
 ```
 ##### Prediction function.
 ```{r}
+#' Title
+#'
+#' @param model 
+#' @param X 
+#'
+#' @return
+#' @export
+#'
+#' @examples
 bhat.predict <- function(model, X){
   X <- na.omit(X)
   #add bias term and convert to matrix
@@ -92,6 +138,15 @@ bhat.predict <- function(model, X){
 
 ##### Function for the confusion matrix
 ```{r}
+#' Title
+#'
+#' @param X 
+#' @param Y 
+#'
+#' @return
+#' @export
+#'
+#' @examples
 confM <- function(X, Y){
   y.prediction <- bhat.predict(model, X)
   glm.pred = rep ("0",length(Y))
@@ -119,6 +174,18 @@ conf.mat
 ```
 #####  boostrap confidence interval 
 ```{r}
+#' Title
+#'
+#' @param x 
+#' @param alpha 
+#' @param R 
+#' @param seed 
+#' @param ... 
+#'
+#' @return
+#' @export
+#'
+#' @examples
 Boostrap <- function(x, alpha =0.05,R =1000, seed = NULL, ...) {
   #Calculate the mean
   x <- x[!is.na(x)]
