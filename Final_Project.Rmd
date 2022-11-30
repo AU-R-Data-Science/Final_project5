@@ -13,25 +13,32 @@ library(lattice)
 ```
 
 ```{r}
-#Pi function defined as p, inverse of logit
-#' Title
+setwd("~/GitHub/Final_project5")
+data=read.csv("crop.data.csv")
+
+
+#' Pi function
+#' Defined as p, inverse of logit
+#' @param z numerical dataset to be fitted to a logistic regression curve 
 #'
-#' @param z 
-#'
-#' @return
+#' @return logistic regression curve 
 #' @export
 #'
-#' @examples
-Pi <- function(z){1/(1+exp(-z))} 
+#' @examples Pi(data)
+Pi <- function(z){
+  Pi_result<-1/(1+exp(-z))
+  return(Pi_result)
+  } 
 
-#objective function to be minimized
-#' Title
+
+
+#' Objective function to be minimized
 #'
-#' @param beta 
-#' @param X 
+#' @param beta the coefficient vector 
+#' @param X a vector of numerical 
 #' @param y 
 #'
-#' @return
+#' @return returns the loss function??
 #' @export
 #'
 #' @examples
@@ -39,13 +46,14 @@ obj_fn <- function(beta, X, y){
   n <- length(y) # number of training examples
   p <- Pi(X%*%beta)
   J <- (t(-y)%*%log(p)-t(1-y)%*%log(1-p))/n
-  J
+  return(J)
 }
+
 ```
 
 ```{r}
-#gradient function
-#' Title
+
+#' Gradient function
 #'
 #' @param beta 
 #' @param X 
@@ -169,6 +177,8 @@ conf.mat <- confM(newdata,newy)
 paste("False Discovery Rate is", conf.mat$table[1,2]/(conf.mat$table[1,1] + conf.mat$table[1,2]))
 paste("Diagnositic odds Ratio is", (conf.mat$table[1,1]*conf.mat$table[2,2])/(conf.mat$table[1,2]*conf.mat$table[2,1]))
 conf.mat
+
+
 ```
 #####  boostrap confidence interval 
 ```{r}
@@ -190,20 +200,7 @@ Boostrap <- function(X, y, alpha = 0.05, R = 20, seed = NULL, ...){
   conf.interval <- cbind(beta.mean, beta.sd, Lower.conf, Upper.conf)
   return(conf.interval)
 }
-Boostrap(X,y)
-#' Title
-#'
-#' @param X 
-#' @param y
-#' @param alpha 
-#' @param R 
-#' @param seed 
-#' @param ... 
-#'
-#' @return
-#' @export
-#'
-#' @examples
+
 
 ```
 
