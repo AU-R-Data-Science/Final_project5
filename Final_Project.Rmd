@@ -37,7 +37,6 @@ Pi <- function(z){1/(1+exp(-z))}
 #' @examples
 obj_fn <- function(beta, X, y){
   n <- length(y) # number of training examples
-
   p <- Pi(X%*%beta)
   J <- (t(-y)%*%log(p)-t(1-y)%*%log(1-p))/n
   J
@@ -75,16 +74,14 @@ grad <- function(beta, X, y){
 #'
 #' @examples
 beta_hat <- function(X, y){
-  #remove NA rows
-  temp <- na.omit(cbind(y, X))
-  #add bias term and convert to matrix
-  X <- mutate(temp[, -1], bias =1)
-  X <- as.matrix(X[,c(ncol(X), 1:(ncol(X)-1))])
-  y <- as.matrix(temp[, 1])
+  X <- as.matrix(X)
+  n <- nrow(X)
+  intercept <- rep(1,n)
+  X <- cbind(intercept,X)
   #initialize beta
-  beta <- matrix(rep(0, ncol(X)), nrow = ncol(X))
+  beta <- solve(t(X)%*%X)%*%(t(X)%*%y)
   #use the optim function to perform gradient descent
-  obj_fnOpti <- optim(matrix(rep(0, 4), nrow = 4), obj_fn, grad, X=X, y=y)
+  obj_fnOpti <- optim(beta, obj_fn, grad, X=X, y=y)
   #return coefficients
   return(obj_fnOpti$par)
 }
@@ -97,7 +94,7 @@ n <- length(y)
 x1 <- rpois(n, lambda = 3)
 x2 <- rnorm(n, -3, 5)
 x3 <- rexp(n, rate = 2)
-int <- rep(1, n)
+# int <- rep(1, n)
 X <- cbind(x1, x2, x3)
 data <- data.frame(y, X)
 data.X <- data[, -1]
@@ -116,6 +113,7 @@ The first number is the intercept. The next three numbers are the coefficient of
 true.model <- glm(y ~ x1 + x2 + x3, family=binomial(link ="logit"), data = data)
 summary(true.model)$coefficients
 ```
+
 ##### Prediction function.
 ```{r}
 #' Title
@@ -128,10 +126,10 @@ summary(true.model)$coefficients
 #'
 #' @examples
 bhat.predict <- function(model, X){
-  X <- na.omit(X)
-  #add bias term and convert to matrix
-  X <- mutate(X, bias =1)
-  X <- as.matrix(X[,c(ncol(X), 1:(ncol(X)-1))])
+  X <- as.matrix(X)
+  n <- nrow(X)
+  intercept <- rep(1, n)
+  X <- cbind(intercept,X)
   return(Pi(X%*%model))
 }
 ```
@@ -141,18 +139,18 @@ bhat.predict <- function(model, X){
 #' Title
 #'
 #' @param X 
-#' @param Y 
+#' @param y 
 #'
 #' @return
 #' @export
 #'
 #' @examples
-confM <- function(X, Y){
+confM <- function(X, y){
   y.prediction <- bhat.predict(model, X)
-  glm.pred = rep ("0",length(Y))
+  glm.pred = rep ("0",length(y))
   glm.pred[y.prediction > 0.5]="1"
   gpp <- factor(glm.pred)
-  newy <- factor(Y)
+  newy <- factor(y)
  return(confusionMatrix(data = gpp, reference = newy)) 
 }
 ```
@@ -174,27 +172,29 @@ conf.mat
 ```
 #####  boostrap confidence interval 
 ```{r}
-Boostrap <- function(X=matrix(rnorm(20,2,4),10,4),y=matrix(rnorm(10,5,3),10,1),alpha =0.05,R =20, seed = NULL, ...){
+Boostrap <- function(X, y, alpha = 0.05, R = 20, seed = NULL, ...){
     #Calculate the mean
-    X<-as.matrix(X)
-    y<-as.matrix(y)
+    X <- as.matrix(X)
     n <- nrow(X)
+    p <- ncol(X) + 1
+    coeff.boot <- matrix(NA, nrow = R, ncol = p)
     for (k in 1:R){
-      for(i in 1:nrow(X)) {
-        sample_X = X[sample(1:n, nrow(X), replace = TRUE), ]
-        sample_y=y[sample(1:n, nrow(y), replace = TRUE), ]
-      }
-      coeff[k]<-quantile(beta_hat(sample_X, SampleY), c(alpha/2, 1-alpha))
-    }
-    LOWERCONFIDENCEINTERVAL = mean(coeff[,1])
-    UPPERCONFIDENCEINTERVAL = mean(coeff[,2])
-    confidence<-cbind(LOWERCONFIDENCEINTERVAL,UPPERCONFIDENCEINTERVAL)
-    return(confidence)
+      row <- sample(1:n, replace = TRUE)
+      X.sample <- X[row, ]
+      y.sample <- y[row]
+      coeff.boot <- beta_hat(X.sample, y.sample)}
+    beta.mean <- apply(coeff.boot, 2, mean)
+  beta.sd <- apply(coeff.boot, 2, sd)
+  Lower.conf <- beta.mean - qnorm(1-alpha/2)*beta.sd
+  Upper.conf <- beta.mean + qnorm(1-alpha/2)*beta.sd
+  conf.interval <- cbind(beta.mean, beta.sd, Lower.conf, Upper.conf)
+  return(conf.interval)
 }
-
+Boostrap(X,y)
 #' Title
 #'
-#' @param x 
+#' @param X 
+#' @param y
 #' @param alpha 
 #' @param R 
 #' @param seed 

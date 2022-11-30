@@ -384,34 +384,68 @@ library(dplyr)</code></pre>
 <pre><code>## Loading required package: lattice</code></pre>
 <pre class="r"><code>library(lattice)</code></pre>
 <pre class="r"><code>#Pi function defined as p, inverse of logit
+#&#39; Title
+#&#39;
+#&#39; @param z 
+#&#39;
+#&#39; @return
+#&#39; @export
+#&#39;
+#&#39; @examples
 Pi &lt;- function(z){1/(1+exp(-z))} 
 
 #objective function to be minimized
+#&#39; Title
+#&#39;
+#&#39; @param beta 
+#&#39; @param X 
+#&#39; @param y 
+#&#39;
+#&#39; @return
+#&#39; @export
+#&#39;
+#&#39; @examples
 obj_fn &lt;- function(beta, X, y){
   n &lt;- length(y) # number of training examples
-
   p &lt;- Pi(X%*%beta)
   J &lt;- (t(-y)%*%log(p)-t(1-y)%*%log(1-p))/n
   J
 }</code></pre>
 <pre class="r"><code>#gradient function
+#&#39; Title
+#&#39;
+#&#39; @param beta 
+#&#39; @param X 
+#&#39; @param y 
+#&#39;
+#&#39; @return
+#&#39; @export
+#&#39;
+#&#39; @examples
 grad &lt;- function(beta, X, y){
   n &lt;- length(y)
   p &lt;- Pi(X%*%beta)
   grad &lt;- (t(X)%*%(p - y))/n
   grad
 }</code></pre>
-<pre class="r"><code>beta_hat &lt;- function(X, y){
-  #remove NA rows
-  temp &lt;- na.omit(cbind(y, X))
-  #add bias term and convert to matrix
-  X &lt;- mutate(temp[, -1], bias =1)
-  X &lt;- as.matrix(X[,c(ncol(X), 1:(ncol(X)-1))])
-  y &lt;- as.matrix(temp[, 1])
+<pre class="r"><code>#&#39; Title
+#&#39;
+#&#39; @param X 
+#&#39; @param y 
+#&#39;
+#&#39; @return
+#&#39; @export
+#&#39;
+#&#39; @examples
+beta_hat &lt;- function(X, y){
+  X &lt;- as.matrix(X)
+  n &lt;- nrow(X)
+  intercept &lt;- rep(1,n)
+  X &lt;- cbind(intercept,X)
   #initialize beta
-  beta &lt;- matrix(rep(0, ncol(X)), nrow = ncol(X))
+  beta &lt;- solve(t(X)%*%X)%*%(t(X)%*%y)
   #use the optim function to perform gradient descent
-  obj_fnOpti &lt;- optim(matrix(rep(0, 4), nrow = 4), obj_fn, grad, X=X, y=y)
+  obj_fnOpti &lt;- optim(beta, obj_fn, grad, X=X, y=y)
   #return coefficients
   return(obj_fnOpti$par)
 }</code></pre>
@@ -423,18 +457,18 @@ n &lt;- length(y)
 x1 &lt;- rpois(n, lambda = 3)
 x2 &lt;- rnorm(n, -3, 5)
 x3 &lt;- rexp(n, rate = 2)
-int &lt;- rep(1, n)
+# int &lt;- rep(1, n)
 X &lt;- cbind(x1, x2, x3)
 data &lt;- data.frame(y, X)
 data.X &lt;- data[, -1]
 data.y &lt;- data[, 1]</code></pre>
 <pre class="r"><code>model &lt;- beta_hat(data.X, data.y)
 model</code></pre>
-<pre><code>##             [,1]
-## [1,] -2.26173209
-## [2,]  0.76334872
-## [3,] -0.04528048
-## [4,]  0.19386416</code></pre>
+<pre><code>##                  [,1]
+## intercept -2.25997565
+## x1         0.76287565
+## x2        -0.04523362
+## x3         0.19268239</code></pre>
 <p>The first number is the intercept. The next three numbers are the
 coefficient of for <code>x1, x2</code> and <code>x3</code>. These
 describe their log odds.</p>
@@ -452,22 +486,40 @@ summary(true.model)$coefficients</code></pre>
 </div>
 <div id="prediction-function." class="section level5">
 <h5>Prediction function.</h5>
-<pre class="r"><code>bhat.predict &lt;- function(model, X){
-  X &lt;- na.omit(X)
-  #add bias term and convert to matrix
-  X &lt;- mutate(X, bias =1)
-  X &lt;- as.matrix(X[,c(ncol(X), 1:(ncol(X)-1))])
+<pre class="r"><code>#&#39; Title
+#&#39;
+#&#39; @param model 
+#&#39; @param X 
+#&#39;
+#&#39; @return
+#&#39; @export
+#&#39;
+#&#39; @examples
+bhat.predict &lt;- function(model, X){
+  X &lt;- as.matrix(X)
+  n &lt;- nrow(X)
+  intercept &lt;- rep(1, n)
+  X &lt;- cbind(intercept,X)
   return(Pi(X%*%model))
 }</code></pre>
 </div>
 <div id="function-for-the-confusion-matrix" class="section level5">
 <h5>Function for the confusion matrix</h5>
-<pre class="r"><code>confM &lt;- function(X, Y){
+<pre class="r"><code>#&#39; Title
+#&#39;
+#&#39; @param X 
+#&#39; @param y 
+#&#39;
+#&#39; @return
+#&#39; @export
+#&#39;
+#&#39; @examples
+confM &lt;- function(X, y){
   y.prediction &lt;- bhat.predict(model, X)
-  glm.pred = rep (&quot;0&quot;,length(Y))
+  glm.pred = rep (&quot;0&quot;,length(y))
   glm.pred[y.prediction &gt; 0.5]=&quot;1&quot;
   gpp &lt;- factor(glm.pred)
-  newy &lt;- factor(Y)
+  newy &lt;- factor(y)
  return(confusionMatrix(data = gpp, reference = newy)) 
 }</code></pre>
 </div>
@@ -513,6 +565,43 @@ paste(&quot;False Discovery Rate is&quot;, conf.mat$table[1,2]/(conf.mat$table[1
 ##                                           
 ##        &#39;Positive&#39; Class : 0               
 ## </code></pre>
+</div>
+<div id="boostrap-confidence-interval" class="section level5">
+<h5>boostrap confidence interval</h5>
+<pre class="r"><code>Boostrap &lt;- function(X, y, alpha = 0.05, R = 20, seed = NULL, ...){
+    #Calculate the mean
+    X &lt;- as.matrix(X)
+    n &lt;- nrow(X)
+    p &lt;- ncol(X) + 1
+    coeff.boot &lt;- matrix(NA, nrow = R, ncol = p)
+    for (k in 1:R){
+      row &lt;- sample(1:n, replace = TRUE)
+      X.sample &lt;- X[row, ]
+      y.sample &lt;- y[row]
+      coeff.boot &lt;- beta_hat(X.sample, y.sample)}
+    beta.mean &lt;- apply(coeff.boot, 2, mean)
+  beta.sd &lt;- apply(coeff.boot, 2, sd)
+  Lower.conf &lt;- beta.mean - qnorm(1-alpha/2)*beta.sd
+  Upper.conf &lt;- beta.mean + qnorm(1-alpha/2)*beta.sd
+  conf.interval &lt;- cbind(beta.mean, beta.sd, Lower.conf, Upper.conf)
+  return(conf.interval)
+}
+Boostrap(X,y)</code></pre>
+<pre><code>##       beta.mean   beta.sd Lower.conf Upper.conf
+## [1,] -0.1593014 0.9894599  -2.098607   1.780004</code></pre>
+<pre class="r"><code>#&#39; Title
+#&#39;
+#&#39; @param X 
+#&#39; @param y
+#&#39; @param alpha 
+#&#39; @param R 
+#&#39; @param seed 
+#&#39; @param ... 
+#&#39;
+#&#39; @return
+#&#39; @export
+#&#39;
+#&#39; @examples</code></pre>
 </div>
 
 
