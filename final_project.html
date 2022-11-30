@@ -383,22 +383,21 @@ library(dplyr)</code></pre>
 <pre class="r"><code>library(caret)</code></pre>
 <pre><code>## Loading required package: lattice</code></pre>
 <pre class="r"><code>library(lattice)</code></pre>
-<p>#<code>{r} #data &lt;- read.csv(&quot;~/Documents/GitHub/Final_project5/crop.data.csv&quot;) head(data) #</code></p>
-<pre class="r"><code>#sigmoid function defined as p, inverse of logit
-sigmoid &lt;- function(z){1/(1+exp(-z))} 
+<pre class="r"><code>#Pi function defined as p, inverse of logit
+Pi &lt;- function(z){1/(1+exp(-z))} 
 
 #objective function to be minimized
 obj_fn &lt;- function(beta, X, y){
   n &lt;- length(y) # number of training examples
 
-  p &lt;- sigmoid(X%*%beta)
+  p &lt;- Pi(X%*%beta)
   J &lt;- (t(-y)%*%log(p)-t(1-y)%*%log(1-p))/n
   J
 }</code></pre>
 <pre class="r"><code>#gradient function
 grad &lt;- function(beta, X, y){
   n &lt;- length(y)
-  p &lt;- sigmoid(X%*%beta)
+  p &lt;- Pi(X%*%beta)
   grad &lt;- (t(X)%*%(p - y))/n
   grad
 }</code></pre>
@@ -418,13 +417,13 @@ grad &lt;- function(beta, X, y){
 }</code></pre>
 <div id="training-our-model-with-our-generated-dataset" class="section level5">
 <h5>Training our model with our generated dataset</h5>
-<pre class="r"><code>set.seed(7)
-n &lt;- 20
+<pre class="r"><code>set.seed(8)
+y &lt;- sample(c(0,1), size = 20, replace = TRUE)
+n &lt;- length(y)
 x1 &lt;- rpois(n, lambda = 3)
 x2 &lt;- rnorm(n, -3, 5)
 x3 &lt;- rexp(n, rate = 2)
 int &lt;- rep(1, n)
-y &lt;- c(rep(1,3), rep(0,3),rep(1,4),rep(0,3),0,1,0,1,1,0,0)
 X &lt;- cbind(x1, x2, x3)
 data &lt;- data.frame(y, X)
 data.X &lt;- data[, -1]
@@ -432,10 +431,10 @@ data.y &lt;- data[, 1]</code></pre>
 <pre class="r"><code>model &lt;- beta_hat(data.X, data.y)
 model</code></pre>
 <pre><code>##             [,1]
-## [1,] -0.39909694
-## [2,]  0.16427299
-## [3,]  0.10889477
-## [4,] -0.05841455</code></pre>
+## [1,] -2.26173209
+## [2,]  0.76334872
+## [3,] -0.04528048
+## [4,]  0.19386416</code></pre>
 <p>The first number is the intercept. The next three numbers are the
 coefficient of for <code>x1, x2</code> and <code>x3</code>. These
 describe their log odds.</p>
@@ -445,35 +444,75 @@ describe their log odds.</p>
 function.</h5>
 <pre class="r"><code>true.model &lt;- glm(y ~ x1 + x2 + x3, family=binomial(link =&quot;logit&quot;), data = data)
 summary(true.model)$coefficients</code></pre>
-<pre><code>##                Estimate Std. Error     z value  Pr(&gt;|z|)
-## (Intercept) -0.39876091  0.9628408 -0.41415039 0.6787640
-## x1           0.16428813  0.2205767  0.74481188 0.4563855
-## x2           0.10885965  0.1031095  1.05576775 0.2910743
-## x3          -0.05901738  1.5509174 -0.03805321 0.9696453</code></pre>
+<pre><code>##                Estimate Std. Error    z value   Pr(&gt;|z|)
+## (Intercept) -2.26037259  1.3897365 -1.6264756 0.10384851
+## x1           0.76303423  0.4200902  1.8163580 0.06931547
+## x2          -0.04518638  0.1082966 -0.4172466 0.67649806
+## x3           0.19301918  1.1244354  0.1716587 0.86370582</code></pre>
 </div>
-<div id="a-prediction-function-that-will-output-the-probability-of-getting-1." class="section level5">
-<h5>A prediction function that will output the probability of getting
-1.</h5>
+<div id="prediction-function." class="section level5">
+<h5>Prediction function.</h5>
 <pre class="r"><code>bhat.predict &lt;- function(model, X){
   X &lt;- na.omit(X)
   #add bias term and convert to matrix
   X &lt;- mutate(X, bias =1)
   X &lt;- as.matrix(X[,c(ncol(X), 1:(ncol(X)-1))])
-  return(sigmoid(X%*%model))
+  return(Pi(X%*%model))
 }</code></pre>
 </div>
-<div id="generating-a-new-data-grid-to-see-how-y-changes-with-predictors." class="section level5">
-<h5>Generating a new data grid to see how <code>y</code> changes with
-predictors.</h5>
-<pre class="r"><code>set.seed(50)
-n= 20
-newdata &lt;- data.frame(x1 =rpois(n,lambda = 3), x2 =runif(n,-1, 1), x3 = rexp(n, rate= 5) )
-
-y.prediction &lt;- bhat.predict(model, newdata)</code></pre>
-<pre class="r"><code>pred &lt;- ifelse(y.prediction &gt; 0.5, &quot;1&quot;, &quot;0&quot;)</code></pre>
+<div id="function-for-the-confusion-matrix" class="section level5">
+<h5>Function for the confusion matrix</h5>
+<pre class="r"><code>confM &lt;- function(X, Y){
+  y.prediction &lt;- bhat.predict(model, X)
+  glm.pred = rep (&quot;0&quot;,length(Y))
+  glm.pred[y.prediction &gt; 0.5]=&quot;1&quot;
+  gpp &lt;- factor(glm.pred)
+  newy &lt;- factor(Y)
+ return(confusionMatrix(data = gpp, reference = newy)) 
+}</code></pre>
 </div>
-<div id="confusion-matrix" class="section level4">
-<h4>Confusion matrix</h4>
+<div id="test-data." class="section level5">
+<h5>Test data.</h5>
+<pre class="r"><code>set.seed(51)
+n = length(y)
+newdata &lt;- data.frame(x1 =rpois(n,lambda = 3), x2 =runif(n,-1, 1), x3 = rexp(n, rate= 5) )
+newy &lt;- sample(c(0,1), size = n, replace = TRUE)</code></pre>
+</div>
+<div id="outputs-from-the-confusion-matrix" class="section level5">
+<h5>Outputs from the confusion matrix</h5>
+<pre class="r"><code>conf.mat &lt;- confM(newdata,newy)
+paste(&quot;False Discovery Rate is&quot;, conf.mat$table[1,2]/(conf.mat$table[1,1] + conf.mat$table[1,2]))</code></pre>
+<pre><code>## [1] &quot;False Discovery Rate is 0.272727272727273&quot;</code></pre>
+<pre class="r"><code>paste(&quot;Diagnositic odds Ratio is&quot;, (conf.mat$table[1,1]*conf.mat$table[2,2])/(conf.mat$table[1,2]*conf.mat$table[2,1]))</code></pre>
+<pre><code>## [1] &quot;Diagnositic odds Ratio is 5.33333333333333&quot;</code></pre>
+<pre class="r"><code>conf.mat</code></pre>
+<pre><code>## Confusion Matrix and Statistics
+## 
+##           Reference
+## Prediction 0 1
+##          0 8 3
+##          1 3 6
+##                                           
+##                Accuracy : 0.7             
+##                  95% CI : (0.4572, 0.8811)
+##     No Information Rate : 0.55            
+##     P-Value [Acc &gt; NIR] : 0.1299          
+##                                           
+##                   Kappa : 0.3939          
+##                                           
+##  Mcnemar&#39;s Test P-Value : 1.0000          
+##                                           
+##             Sensitivity : 0.7273          
+##             Specificity : 0.6667          
+##          Pos Pred Value : 0.7273          
+##          Neg Pred Value : 0.6667          
+##              Prevalence : 0.5500          
+##          Detection Rate : 0.4000          
+##    Detection Prevalence : 0.5500          
+##       Balanced Accuracy : 0.6970          
+##                                           
+##        &#39;Positive&#39; Class : 0               
+## </code></pre>
 </div>
 
 
