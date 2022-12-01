@@ -18,7 +18,7 @@ data=read.csv("crop.data.csv")
 
 
 #' Pi function
-#' Defined as p, inverse of logit
+#' Define the probability of success or failure 
 #' @param z numerical dataset to be fitted to a logistic regression curve 
 #'
 #' @return logistic regression curve 
@@ -32,13 +32,13 @@ Pi <- function(z){
 
 
 
-#' Objective function to be minimized
-#'
+#' Objective function 
+#' Finds the beta hat that will minimize the objective function 
 #' @param beta the coefficient vector 
-#' @param X a vector of numerical 
-#' @param y 
+#' @param X a matrix of numerical coefficients of beta 
+#' @param y a numerical vector 
 #'
-#' @return returns the loss function??
+#' @return 
 #' @export
 #'
 #' @examples
@@ -46,20 +46,20 @@ obj_fn <- function(beta, X, y){
   n <- length(y) # number of training examples
   p <- Pi(X%*%beta)
   J <- (t(-y)%*%log(p)-t(1-y)%*%log(1-p))/n
-  return(J)
+  J
 }
 
 ```
 
 ```{r}
 
-#' Gradient function
+#' Gradient descent function
+#' Constraint function  
+#' @param beta the coefficient vector 
+#' @param X a matrix of numerical coefficients of beta 
+#' @param y a numerical vector 
 #'
-#' @param beta 
-#' @param X 
-#' @param y 
-#'
-#' @return
+#' @return 
 #' @export
 #'
 #' @examples
@@ -74,8 +74,8 @@ grad <- function(beta, X, y){
 ```{r}
 #' Title
 #'
-#' @param X 
-#' @param y 
+#' @param X a matrix of numerical coefficients of beta 
+#' @param y a numerical vector 
 #'
 #' @return
 #' @export
@@ -127,7 +127,7 @@ summary(true.model)$coefficients
 #' Title
 #'
 #' @param model 
-#' @param X 
+#' @param X a matrix of numerical coefficients of beta 
 #'
 #' @return
 #' @export
@@ -140,6 +140,23 @@ bhat.predict <- function(model, X){
   X <- cbind(intercept,X)
   return(Pi(X%*%model))
 }
+```
+
+
+```{r}
+-------- #not real code just example for the plot 
+#fit logistic regression model
+model <- glm(vs ~ hp, data=mtcars, family=binomial)
+
+#define new data frame that contains predictor variable
+newdata <- data.frame(hp=seq(min(mtcars$hp), max(mtcars$hp),len=500))
+
+#use fitted model to predict values of vs
+newdata$vs = predict(model, newdata, type="response")
+
+#plot logistic regression curve
+plot(vs ~ hp, data=mtcars, col="steelblue")
+lines(vs ~ hp, newdata, lwd=2)
 ```
 
 ##### Function for the confusion matrix
@@ -182,6 +199,19 @@ conf.mat
 ```
 #####  boostrap confidence interval 
 ```{r}
+#' Title
+#'
+#' @param X 
+#' @param y 
+#' @param alpha 
+#' @param R 
+#' @param seed 
+#' @param ... 
+#'
+#' @return
+#' @export
+#'
+#' @examples
 Boostrap <- function(X, y, alpha = 0.05, R = 20, seed = NULL, ...){
     #Calculate the mean
     X <- as.matrix(X)
