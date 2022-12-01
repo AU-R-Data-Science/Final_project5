@@ -516,7 +516,7 @@ bhat.predict &lt;- function(model, X){
 #&#39; @examples
 confM &lt;- function(X, y){
   y.prediction &lt;- bhat.predict(model, X)
-  glm.pred = rep (&quot;0&quot;,length(y))
+  glm.pred &lt;- rep (&quot;0&quot;,length(y))
   glm.pred[y.prediction &gt; 0.5]=&quot;1&quot;
   gpp &lt;- factor(glm.pred)
   newy &lt;- factor(y)

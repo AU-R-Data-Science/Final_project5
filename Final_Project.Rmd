@@ -172,7 +172,7 @@ lines(vs ~ hp, newdata, lwd=2)
 #' @examples
 confM <- function(X, y){
   y.prediction <- bhat.predict(model, X)
-  glm.pred = rep ("0",length(y))
+  glm.pred <- rep ("0",length(y))
   glm.pred[y.prediction > 0.5]="1"
   gpp <- factor(glm.pred)
   newy <- factor(y)
@@ -222,7 +222,7 @@ Boostrap <- function(X, y, alpha = 0.05, R = 20, seed = NULL, ...){
       row <- sample(1:n, replace = TRUE)
       X.sample <- X[row, ]
       y.sample <- y[row]
-      coeff.boot <- beta_hat(X.sample, y.sample)}
+      coeff.boot[k,] <- beta_hat(X.sample, y.sample)}
     beta.mean <- apply(coeff.boot, 2, mean)
   beta.sd <- apply(coeff.boot, 2, sd)
   Lower.conf <- beta.mean - qnorm(1-alpha/2)*beta.sd
