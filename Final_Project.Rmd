@@ -127,7 +127,7 @@ true.model$coefficients
 #' @param model 
 #' @param x a matrix of numerical coefficients of beta 
 #'
-#' @return
+#' @return beta hat
 #' @export
 #'
 #' @examples
@@ -144,8 +144,8 @@ bhat.predict <- function(model, x){
 ```{r}
 #' Title
 #'
-#' @param x 
-#' @param y 
+#' @param x a matrix of numerical coefficients of beta
+#' @param y a numerical vector
 #'
 #' @return
 #' @export
@@ -180,13 +180,13 @@ conf.mat
 ```
 #####  boostrap confidence interval 
 ```{r}
-#' Title
+#' bootstrap function
 #'
-#' @param x 
-#' @param y 
+#' @param x a matrix of numerical coefficients of beta
+#' @param y a numerical vector
 #' @param alpha 
 #' @param R 
-#' @param seed 
+#' @param seed accounts for randomness and will allow for the same generated numbers
 #' @param ... 
 #'
 #' @return
