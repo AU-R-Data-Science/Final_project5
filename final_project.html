@@ -383,70 +383,74 @@ library(dplyr)</code></pre>
 <pre class="r"><code>library(caret)</code></pre>
 <pre><code>## Loading required package: lattice</code></pre>
 <pre class="r"><code>library(lattice)</code></pre>
-<pre class="r"><code>#Pi function defined as p, inverse of logit
-#&#39; Title
+<pre class="r"><code>#&#39; Pi function
+#&#39; Define the probability of success or failure 
+#&#39; @param m numerical dataset to be fitted to a logistic regression curve 
 #&#39;
-#&#39; @param z 
-#&#39;
-#&#39; @return
+#&#39; @return logistic regression curve 
 #&#39; @export
 #&#39;
-#&#39; @examples
-Pi &lt;- function(z){1/(1+exp(-z))} 
+#&#39; @examples Pi(data)
+Pi &lt;- function(m){
+  Pi_result&lt;-1/(1+exp(-m))
+  return(Pi_result)
+  } 
 
-#objective function to be minimized
-#&#39; Title
+
+
+#&#39; Objective function 
+#&#39; Finds the beta hat that will minimize the objective function 
+#&#39; @param beta the coefficient vector 
+#&#39; @param x a matrix of numerical coefficients of beta 
+#&#39; @param y a numerical vector 
 #&#39;
-#&#39; @param beta 
-#&#39; @param X 
-#&#39; @param y 
-#&#39;
-#&#39; @return
+#&#39; @return 
 #&#39; @export
 #&#39;
 #&#39; @examples
-obj_fn &lt;- function(beta, X, y){
+obj_fn &lt;- function(beta, x, y){
   n &lt;- length(y) # number of training examples
-  p &lt;- Pi(X%*%beta)
-  J &lt;- (t(-y)%*%log(p)-t(1-y)%*%log(1-p))/n
-  J
+  p &lt;- Pi(x%*%beta)
+  cost.fn &lt;- (t(-y)%*%log(p)-t(1-y)%*%log(1-p))/n
+ # cost.fn
 }</code></pre>
-<pre class="r"><code>#gradient function
-#&#39; Title
+<pre class="r"><code>#&#39; Gradient descent function
+#&#39; Constraint function  
+#&#39; @param beta the coefficient vector 
+#&#39; @param x a matrix of numerical coefficients of beta 
+#&#39; @param y a numerical vector 
 #&#39;
-#&#39; @param beta 
-#&#39; @param X 
-#&#39; @param y 
-#&#39;
-#&#39; @return
+#&#39; @return 
 #&#39; @export
 #&#39;
 #&#39; @examples
-grad &lt;- function(beta, X, y){
+grad &lt;- function(beta, x, y){
   n &lt;- length(y)
-  p &lt;- Pi(X%*%beta)
-  grad &lt;- (t(X)%*%(p - y))/n
-  grad
+  p &lt;- Pi(x%*%beta)
+  grad &lt;- (t(x)%*%(p - y))/n
+ # grad
 }</code></pre>
 <pre class="r"><code>#&#39; Title
 #&#39;
-#&#39; @param X 
-#&#39; @param y 
+#&#39; @param x a matrix of numerical coefficients of beta 
+#&#39; @param y a numerical vector 
 #&#39;
 #&#39; @return
 #&#39; @export
 #&#39;
 #&#39; @examples
-beta_hat &lt;- function(X, y){
-  X &lt;- as.matrix(X)
-  n &lt;- nrow(X)
+beta_hat &lt;- function(x, y){
+  x &lt;- as.matrix(x)
+  n &lt;- nrow(x)
   intercept &lt;- rep(1,n)
-  X &lt;- cbind(intercept,X)
+  x &lt;- cbind(intercept,x)
   #initialize beta
-  beta &lt;- solve(t(X)%*%X)%*%(t(X)%*%y)
+  beta &lt;- solve(t(x)%*%x)%*%(t(x)%*%y)
   #use the optim function to perform gradient descent
-  obj_fnOpti &lt;- optim(beta, obj_fn, grad, X=X, y=y)
+  obj_fnOpti &lt;- optim(beta, obj_fn, grad, x = x, y = y)
   #return coefficients
+  obj_fnOpti$par &lt;- as.vector(obj_fnOpti$par)
+  names(obj_fnOpti$par) &lt;- colnames(x)
   return(obj_fnOpti$par)
 }</code></pre>
 <div id="training-our-model-with-our-generated-dataset" class="section level5">
@@ -458,17 +462,14 @@ x1 &lt;- rpois(n, lambda = 3)
 x2 &lt;- rnorm(n, -3, 5)
 x3 &lt;- rexp(n, rate = 2)
 # int &lt;- rep(1, n)
-X &lt;- cbind(x1, x2, x3)
-data &lt;- data.frame(y, X)
-data.X &lt;- data[, -1]
+x &lt;- cbind(x1, x2, x3)
+data &lt;- data.frame(y, x)
+data.x &lt;- data[, -1]
 data.y &lt;- data[, 1]</code></pre>
-<pre class="r"><code>model &lt;- beta_hat(data.X, data.y)
+<pre class="r"><code>model &lt;- beta_hat(data.x, data.y)
 model</code></pre>
-<pre><code>##                  [,1]
-## intercept -2.25997565
-## x1         0.76287565
-## x2        -0.04523362
-## x3         0.19268239</code></pre>
+<pre><code>##   intercept          x1          x2          x3 
+## -2.25997565  0.76287565 -0.04523362  0.19268239</code></pre>
 <p>The first number is the intercept. The next three numbers are the
 coefficient of for <code>x1, x2</code> and <code>x3</code>. These
 describe their log odds.</p>
@@ -477,45 +478,42 @@ describe their log odds.</p>
 <h5>Comparing our self-built model with <code>glm()</code>
 function.</h5>
 <pre class="r"><code>true.model &lt;- glm(y ~ x1 + x2 + x3, family=binomial(link =&quot;logit&quot;), data = data)
-summary(true.model)$coefficients</code></pre>
-<pre><code>##                Estimate Std. Error    z value   Pr(&gt;|z|)
-## (Intercept) -2.26037259  1.3897365 -1.6264756 0.10384851
-## x1           0.76303423  0.4200902  1.8163580 0.06931547
-## x2          -0.04518638  0.1082966 -0.4172466 0.67649806
-## x3           0.19301918  1.1244354  0.1716587 0.86370582</code></pre>
+true.model$coefficients</code></pre>
+<pre><code>## (Intercept)          x1          x2          x3 
+## -2.26037259  0.76303423 -0.04518638  0.19301918</code></pre>
 </div>
 <div id="prediction-function." class="section level5">
 <h5>Prediction function.</h5>
 <pre class="r"><code>#&#39; Title
 #&#39;
 #&#39; @param model 
-#&#39; @param X 
+#&#39; @param x a matrix of numerical coefficients of beta 
 #&#39;
 #&#39; @return
 #&#39; @export
 #&#39;
 #&#39; @examples
-bhat.predict &lt;- function(model, X){
-  X &lt;- as.matrix(X)
-  n &lt;- nrow(X)
+bhat.predict &lt;- function(model, x){
+  x &lt;- as.matrix(x)
+  n &lt;- nrow(x)
   intercept &lt;- rep(1, n)
-  X &lt;- cbind(intercept,X)
-  return(Pi(X%*%model))
+  x &lt;- cbind(intercept,x)
+  return(Pi(x%*%model))
 }</code></pre>
 </div>
 <div id="function-for-the-confusion-matrix" class="section level5">
 <h5>Function for the confusion matrix</h5>
 <pre class="r"><code>#&#39; Title
 #&#39;
-#&#39; @param X 
+#&#39; @param x 
 #&#39; @param y 
 #&#39;
 #&#39; @return
 #&#39; @export
 #&#39;
 #&#39; @examples
-confM &lt;- function(X, y){
-  y.prediction &lt;- bhat.predict(model, X)
+confM &lt;- function(x, y){
+  y.prediction &lt;- bhat.predict(model, x)
   glm.pred &lt;- rep (&quot;0&quot;,length(y))
   glm.pred[y.prediction &gt; 0.5]=&quot;1&quot;
   gpp &lt;- factor(glm.pred)
@@ -568,31 +566,10 @@ paste(&quot;False Discovery Rate is&quot;, conf.mat$table[1,2]/(conf.mat$table[1
 </div>
 <div id="boostrap-confidence-interval" class="section level5">
 <h5>boostrap confidence interval</h5>
-<pre class="r"><code>Boostrap &lt;- function(X, y, alpha = 0.05, R = 20, seed = NULL, ...){
-    #Calculate the mean
-    X &lt;- as.matrix(X)
-    n &lt;- nrow(X)
-    p &lt;- ncol(X) + 1
-    coeff.boot &lt;- matrix(NA, nrow = R, ncol = p)
-    for (k in 1:R){
-      row &lt;- sample(1:n, replace = TRUE)
-      X.sample &lt;- X[row, ]
-      y.sample &lt;- y[row]
-      coeff.boot &lt;- beta_hat(X.sample, y.sample)}
-    beta.mean &lt;- apply(coeff.boot, 2, mean)
-  beta.sd &lt;- apply(coeff.boot, 2, sd)
-  Lower.conf &lt;- beta.mean - qnorm(1-alpha/2)*beta.sd
-  Upper.conf &lt;- beta.mean + qnorm(1-alpha/2)*beta.sd
-  conf.interval &lt;- cbind(beta.mean, beta.sd, Lower.conf, Upper.conf)
-  return(conf.interval)
-}
-Boostrap(X,y)</code></pre>
-<pre><code>##       beta.mean   beta.sd Lower.conf Upper.conf
-## [1,] -0.1593014 0.9894599  -2.098607   1.780004</code></pre>
 <pre class="r"><code>#&#39; Title
 #&#39;
-#&#39; @param X 
-#&#39; @param y
+#&#39; @param x 
+#&#39; @param y 
 #&#39; @param alpha 
 #&#39; @param R 
 #&#39; @param seed 
@@ -601,7 +578,31 @@ Boostrap(X,y)</code></pre>
 #&#39; @return
 #&#39; @export
 #&#39;
-#&#39; @examples</code></pre>
+#&#39; @examples
+Boostrap &lt;- function(x, y, alpha = 0.05, R = 20, seed = NULL, ...){
+    #Calculate the mean
+    x &lt;- as.matrix(x)
+    n &lt;- nrow(x)
+    p &lt;- ncol(x) + 1
+    coeff.boot &lt;- matrix(NA, nrow = R, ncol = p)
+    for (k in 1:R){
+      row &lt;- sample(1:n, replace = TRUE)
+      x.sample &lt;- x[row, ]
+      y.sample &lt;- y[row]
+      coeff.boot[k,] &lt;- beta_hat(x.sample, y.sample)}
+    beta.mean &lt;- apply(coeff.boot, 2, mean)
+  beta.sd &lt;- apply(coeff.boot, 2, sd)
+  Lower.conf &lt;- beta.mean - qnorm(1-alpha/2)*beta.sd
+  Upper.conf &lt;- beta.mean + qnorm(1-alpha/2)*beta.sd
+  conf.interval &lt;- cbind(beta.mean, beta.sd, Lower.conf, Upper.conf)
+  return(conf.interval)
+}
+Boostrap(x,y)</code></pre>
+<pre><code>##         beta.mean    beta.sd  Lower.conf Upper.conf
+## [1,] -3.783723037  2.0433749  -7.7886643  0.2212183
+## [2,]  0.887683692  1.0516459  -1.1735043  2.9488717
+## [3,]  0.000322604  0.2006047  -0.3928554  0.3935006
+## [4,]  5.830452880 20.9771859 -35.2840759 46.9449817</code></pre>
 </div>
 
 

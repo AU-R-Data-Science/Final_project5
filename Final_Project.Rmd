@@ -13,20 +13,16 @@ library(lattice)
 ```
 
 ```{r}
-setwd("~/GitHub/Final_project5")
-data=read.csv("crop.data.csv")
-
-
 #' Pi function
 #' Define the probability of success or failure 
-#' @param z numerical dataset to be fitted to a logistic regression curve 
+#' @param m numerical dataset to be fitted to a logistic regression curve 
 #'
 #' @return logistic regression curve 
 #' @export
 #'
 #' @examples Pi(data)
-Pi <- function(z){
-  Pi_result<-1/(1+exp(-z))
+Pi <- function(m){
+  Pi_result<-1/(1+exp(-m))
   return(Pi_result)
   } 
 
@@ -35,18 +31,18 @@ Pi <- function(z){
 #' Objective function 
 #' Finds the beta hat that will minimize the objective function 
 #' @param beta the coefficient vector 
-#' @param X a matrix of numerical coefficients of beta 
+#' @param x a matrix of numerical coefficients of beta 
 #' @param y a numerical vector 
 #'
 #' @return 
 #' @export
 #'
 #' @examples
-obj_fn <- function(beta, X, y){
+obj_fn <- function(beta, x, y){
   n <- length(y) # number of training examples
-  p <- Pi(X%*%beta)
-  J <- (t(-y)%*%log(p)-t(1-y)%*%log(1-p))/n
-  J
+  p <- Pi(x%*%beta)
+  cost.fn <- (t(-y)%*%log(p)-t(1-y)%*%log(1-p))/n
+ # cost.fn
 }
 
 ```
@@ -56,41 +52,43 @@ obj_fn <- function(beta, X, y){
 #' Gradient descent function
 #' Constraint function  
 #' @param beta the coefficient vector 
-#' @param X a matrix of numerical coefficients of beta 
+#' @param x a matrix of numerical coefficients of beta 
 #' @param y a numerical vector 
 #'
 #' @return 
 #' @export
 #'
 #' @examples
-grad <- function(beta, X, y){
+grad <- function(beta, x, y){
   n <- length(y)
-  p <- Pi(X%*%beta)
-  grad <- (t(X)%*%(p - y))/n
-  grad
+  p <- Pi(x%*%beta)
+  grad <- (t(x)%*%(p - y))/n
+ # grad
 }
 ```
 
 ```{r}
 #' Title
 #'
-#' @param X a matrix of numerical coefficients of beta 
+#' @param x a matrix of numerical coefficients of beta 
 #' @param y a numerical vector 
 #'
 #' @return
 #' @export
 #'
 #' @examples
-beta_hat <- function(X, y){
-  X <- as.matrix(X)
-  n <- nrow(X)
+beta_hat <- function(x, y){
+  x <- as.matrix(x)
+  n <- nrow(x)
   intercept <- rep(1,n)
-  X <- cbind(intercept,X)
+  x <- cbind(intercept,x)
   #initialize beta
-  beta <- solve(t(X)%*%X)%*%(t(X)%*%y)
+  beta <- solve(t(x)%*%x)%*%(t(x)%*%y)
   #use the optim function to perform gradient descent
-  obj_fnOpti <- optim(beta, obj_fn, grad, X=X, y=y)
+  obj_fnOpti <- optim(beta, obj_fn, grad, x = x, y = y)
   #return coefficients
+  obj_fnOpti$par <- as.vector(obj_fnOpti$par)
+  names(obj_fnOpti$par) <- colnames(x)
   return(obj_fnOpti$par)
 }
 ```
@@ -103,14 +101,14 @@ x1 <- rpois(n, lambda = 3)
 x2 <- rnorm(n, -3, 5)
 x3 <- rexp(n, rate = 2)
 # int <- rep(1, n)
-X <- cbind(x1, x2, x3)
-data <- data.frame(y, X)
-data.X <- data[, -1]
+x <- cbind(x1, x2, x3)
+data <- data.frame(y, x)
+data.x <- data[, -1]
 data.y <- data[, 1]
 ```
 
 ```{r}
-model <- beta_hat(data.X, data.y)
+model <- beta_hat(data.x, data.y)
 model
 ```
 The first number is the intercept. The next three numbers are the coefficient of for `x1, x2`  and  `x3`. These describe their log odds.
@@ -119,7 +117,7 @@ The first number is the intercept. The next three numbers are the coefficient of
 ##### Comparing our self-built model with `glm()` function.
 ```{r}
 true.model <- glm(y ~ x1 + x2 + x3, family=binomial(link ="logit"), data = data)
-summary(true.model)$coefficients
+true.model$coefficients
 ```
 
 ##### Prediction function.
@@ -127,51 +125,34 @@ summary(true.model)$coefficients
 #' Title
 #'
 #' @param model 
-#' @param X a matrix of numerical coefficients of beta 
+#' @param x a matrix of numerical coefficients of beta 
 #'
 #' @return
 #' @export
 #'
 #' @examples
-bhat.predict <- function(model, X){
-  X <- as.matrix(X)
-  n <- nrow(X)
+bhat.predict <- function(model, x){
+  x <- as.matrix(x)
+  n <- nrow(x)
   intercept <- rep(1, n)
-  X <- cbind(intercept,X)
-  return(Pi(X%*%model))
+  x <- cbind(intercept,x)
+  return(Pi(x%*%model))
 }
-```
-
-
-```{r}
--------- #not real code just example for the plot 
-#fit logistic regression model
-model <- glm(vs ~ hp, data=mtcars, family=binomial)
-
-#define new data frame that contains predictor variable
-newdata <- data.frame(hp=seq(min(mtcars$hp), max(mtcars$hp),len=500))
-
-#use fitted model to predict values of vs
-newdata$vs = predict(model, newdata, type="response")
-
-#plot logistic regression curve
-plot(vs ~ hp, data=mtcars, col="steelblue")
-lines(vs ~ hp, newdata, lwd=2)
 ```
 
 ##### Function for the confusion matrix
 ```{r}
 #' Title
 #'
-#' @param X 
+#' @param x 
 #' @param y 
 #'
 #' @return
 #' @export
 #'
 #' @examples
-confM <- function(X, y){
-  y.prediction <- bhat.predict(model, X)
+confM <- function(x, y){
+  y.prediction <- bhat.predict(model, x)
   glm.pred <- rep ("0",length(y))
   glm.pred[y.prediction > 0.5]="1"
   gpp <- factor(glm.pred)
@@ -201,7 +182,7 @@ conf.mat
 ```{r}
 #' Title
 #'
-#' @param X 
+#' @param x 
 #' @param y 
 #' @param alpha 
 #' @param R 
@@ -212,17 +193,17 @@ conf.mat
 #' @export
 #'
 #' @examples
-Boostrap <- function(X, y, alpha = 0.05, R = 20, seed = NULL, ...){
+Boostrap <- function(x, y, alpha = 0.05, R = 20, seed = NULL, ...){
     #Calculate the mean
-    X <- as.matrix(X)
-    n <- nrow(X)
-    p <- ncol(X) + 1
+    x <- as.matrix(x)
+    n <- nrow(x)
+    p <- ncol(x) + 1
     coeff.boot <- matrix(NA, nrow = R, ncol = p)
     for (k in 1:R){
       row <- sample(1:n, replace = TRUE)
-      X.sample <- X[row, ]
+      x.sample <- x[row, ]
       y.sample <- y[row]
-      coeff.boot[k,] <- beta_hat(X.sample, y.sample)}
+      coeff.boot[k,] <- beta_hat(x.sample, y.sample)}
     beta.mean <- apply(coeff.boot, 2, mean)
   beta.sd <- apply(coeff.boot, 2, sd)
   Lower.conf <- beta.mean - qnorm(1-alpha/2)*beta.sd
@@ -230,7 +211,7 @@ Boostrap <- function(X, y, alpha = 0.05, R = 20, seed = NULL, ...){
   conf.interval <- cbind(beta.mean, beta.sd, Lower.conf, Upper.conf)
   return(conf.interval)
 }
-
+Boostrap(x,y)
 
 ```
 
