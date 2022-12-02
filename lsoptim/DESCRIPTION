@@ -1,0 +1,15 @@
+Package: lsoptim
+Type: Package
+Title: Logistic Regression 
+Version: 0.1.0
+Author: c(person("Shawn", "Yates", email = "sdy0002@auburn.edu", role = c("aut","cre")),,
+        person("Monday", "Nnakwe", role = "aut"),
+        person("Mikerly", "Joseph", role = "aut"))
+Maintainer: The package maintainer <sdy0002@auburn.edu>
+Description: 
+Roxygen: list(markdown = TRUE)    
+License: `use_mit_license()`
+Encoding: UTF-8
+LazyData: true
+Imports: ggplot2, dplyr, caret,   lattice
+RoxygenNote: 7.2.1
