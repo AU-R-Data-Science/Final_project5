@@ -16,8 +16,6 @@ Pi <- function(m){
   return(Pi_result)
 }
 
-
-
 #' Objective function
 #' Finds the beta hat that will minimize the objective function
 #' @param beta the coefficient vector
@@ -35,10 +33,6 @@ obj_fn <- function(beta, x, y){
   # cost.fn
 }
 
-
-
-
-
 #' Gradient descent function
 #' Constraint function
 #' @param beta the coefficient vector
@@ -55,8 +49,6 @@ grad <- function(beta, x, y){
   grad <- (t(x)%*%(p - y))/n
   # grad
 }
-
-
 
 #' Optimize function
 #'
@@ -95,8 +87,6 @@ x <- cbind(x1, x2, x3)
 data <- data.frame(y, x)
 data.x <- data[, -1]
 data.y <- data[, 1]
-
-
 
 model <- beta_hat(data.x, data.y)
 model
@@ -160,8 +150,9 @@ paste("Diagnositic odds Ratio is", (conf.mat$table[1,1]*conf.mat$table[2,2])/(co
 conf.mat
 
 
-
-
+p <- Pi(beta_hat(newdata,y))
+df=data.frame(newy,p)
+ggplot(df, aes(x=newy, y=p)) + geom_point() +  stat_smooth(method="glm", color="red", se=FALSE, method.args = list(family=binomial))
 
 #' bootstrap function
 #' boostrap confidence interval
