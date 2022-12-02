@@ -1,0 +1,232 @@
+---
+title: "Final_Project Group5"
+author: "Mistral Joseph, Shawn Yates, Monday Nnakwe"
+date: "2022-11-14"
+output: html_document
+---
+
+```{r, warning=FALSE}
+library(ggplot2)
+library(dplyr)
+library(caret)
+library(lattice)
+```
+
+```{r}
+#' Pi function
+#' Define the probability of success or failure 
+#' @param m numerical dataset to be fitted to a logistic regression curve 
+#'
+#' @return logistic regression curve 
+#' @export
+#'
+#' @examples Pi(data)
+Pi <- function(m){
+  Pi_result <- 1/(1+exp(-m))
+  return(Pi_result)
+  } 
+
+
+
+#' Objective function 
+#' Finds the beta hat that will minimize the objective function 
+#' @param beta the coefficient vector 
+#' @param x a matrix of numerical coefficients of beta 
+#' @param y a numerical vector 
+#'
+#' @return 
+#' @export
+#'
+#' @examples
+obj_fn <- function(beta, x, y){
+  n <- length(y) # number of training examples
+  p <- Pi(x%*%beta)
+  cost.fn <- (t(-y)%*%log(p)-t(1-y)%*%log(1-p))/n
+ # cost.fn
+}
+
+```
+
+```{r}
+
+#' Gradient descent function
+#' Constraint function  
+#' @param beta the coefficient vector 
+#' @param x a matrix of numerical coefficients of beta 
+#' @param y a numerical vector 
+#'
+#' @return 
+#' @export
+#'
+#' @examples
+grad <- function(beta, x, y){
+  n <- length(y)
+  p <- Pi(x%*%beta)
+  grad <- (t(x)%*%(p - y))/n
+ # grad
+}
+```
+
+```{r}
+#' Title
+#'
+#' @param x a matrix of numerical coefficients of beta 
+#' @param y a numerical vector 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+beta_hat <- function(x, y){
+  x <- as.matrix(x)
+  n <- nrow(x)
+  intercept <- rep(1,n)
+  x <- cbind(intercept,x)
+  #initialize beta
+  beta <- solve(t(x)%*%x)%*%(t(x)%*%y)
+  #use the optim function to perform gradient descent
+  obj_fnOpti <- optim(beta, obj_fn, grad, x = x, y = y)
+  #return coefficients
+  obj_fnOpti$par <- as.vector(obj_fnOpti$par)
+  names(obj_fnOpti$par) <- colnames(x)
+  return(obj_fnOpti$par)
+}
+```
+##### Training our model with our generated dataset
+```{r}
+set.seed(8)
+y <- sample(c(0,1), size = 20, replace = TRUE)
+n <- length(y)
+x1 <- rpois(n, lambda = 3)
+x2 <- rnorm(n, -3, 5)
+x3 <- rexp(n, rate = 2)
+# int <- rep(1, n)
+x <- cbind(x1, x2, x3)
+data <- data.frame(y, x)
+data.x <- data[, -1]
+data.y <- data[, 1]
+```
+
+```{r}
+model <- beta_hat(data.x, data.y)
+model
+```
+The first number is the intercept. The next three numbers are the coefficient of for `x1, x2`  and  `x3`. These describe their log odds.
+
+
+##### Comparing our self-built model with `glm()` function.
+```{r}
+true.model <- glm(y ~ x1 + x2 + x3, family=binomial(link ="logit"), data = data)
+true.model$coefficients
+```
+
+##### Prediction function.
+```{r}
+#' Title
+#'
+#' @param model 
+#' @param x a matrix of numerical coefficients of beta 
+#'
+#' @return beta hat
+#' @export
+#'
+#' @examples
+bhat.predict <- function(model, x){
+  x <- as.matrix(x)
+  n <- nrow(x)
+  intercept <- rep(1, n)
+  x <- cbind(intercept,x)
+  return(Pi(x%*%model))
+}
+```
+
+##### Function for the confusion matrix
+```{r}
+#' Title
+#'
+#' @param x a matrix of numerical coefficients of beta
+#' @param y a numerical vector
+#'
+#' @return
+#' @export
+#'
+#' @examples
+confM <- function(x, y){
+  y.prediction <- bhat.predict(model, x)
+  glm.pred <- rep ("0",length(y))
+  glm.pred[y.prediction > 0.5]="1"
+  gpp <- factor(glm.pred)
+  newy <- factor(y)
+ return(confusionMatrix(data = gpp, reference = newy)) 
+}
+```
+
+#####  Test data.
+```{r}
+set.seed(51)
+n = length(y)
+newdata <- data.frame(x1 =rpois(n,lambda = 3), x2 =runif(n,-1, 1), x3 = rexp(n, rate= 5) )
+newy <- sample(c(0,1), size = n, replace = TRUE)
+```
+
+##### Outputs from the confusion matrix
+```{r}
+conf.mat <- confM(newdata,newy)
+paste("False Discovery Rate is", conf.mat$table[1,2]/(conf.mat$table[1,1] + conf.mat$table[1,2]))
+paste("Diagnositic odds Ratio is", (conf.mat$table[1,1]*conf.mat$table[2,2])/(conf.mat$table[1,2]*conf.mat$table[2,1]))
+conf.mat
+
+
+```
+
+#####  Plotting the fitted logistic curve versus actual values.
+```{r}
+p <- Pi(beta_hat(newdata,y))
+```
+```{r, warning=FALSE}
+df=data.frame(newy,p)
+```
+```{r, warning=FALSE}
+ggplot(df, aes(x=newy, y=p)) + geom_point() +  stat_smooth(method="glm", color="red", se=FALSE, method.args = list(family=binomial))
+```
+
+#####  boostrap confidence interval 
+```{r, warning=FALSE}
+#' bootstrap function
+#'
+#' @param x a matrix of numerical coefficients of beta
+#' @param y a numerical vector
+#' @param alpha 
+#' @param R 
+#' @param seed accounts for randomness and will allow for the same generated numbers
+#' @param ... 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+Boostrap <- function(x, y, alpha = 0.05, R = 20, seed = NULL, ...){
+    #Calculate the mean
+    x <- as.matrix(x)
+    n <- nrow(x)
+    p <- ncol(x) + 1
+    coeff.boot <- matrix(NA, nrow = R, ncol = p)
+    for (k in 1:R){
+      row <- sample(1:n, replace = TRUE)
+      x.sample <- x[row, ]
+      y.sample <- y[row]
+      coeff.boot[k,] <- beta_hat(x.sample, y.sample)}
+    beta.mean <- apply(coeff.boot, 2, mean)
+  beta.sd <- apply(coeff.boot, 2, sd)
+  Lower.conf <- beta.mean - qnorm(1-alpha/2)*beta.sd
+  Upper.conf <- beta.mean + qnorm(1-alpha/2)*beta.sd
+  conf.interval <- cbind(beta.mean, beta.sd, Lower.conf, Upper.conf)
+  return(conf.interval)
+}
+Boostrap(x,y)
+
+```
+
+
+
+
