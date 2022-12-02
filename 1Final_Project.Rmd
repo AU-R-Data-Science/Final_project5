@@ -80,11 +80,12 @@ grad <- function(beta, x, y){
 #' @examples
 beta_hat <- function(x, y){
   x <- as.matrix(x)
+  y<- as.matrix(y)
   n <- nrow(x)
   intercept <- rep(1,n)
   x <- cbind(intercept,x)
   #initialize beta
-  beta <- solve(t(x)%*%x)%*%(t(x)%*%y)
+  beta <- (solve(t(x)%*%x))%*%(t(x)%*%y)
   #use the optim function to perform gradient descent
   obj_fnOpti <- optim(beta, obj_fn, grad, x = x, y = y)
   #return coefficients
@@ -141,6 +142,7 @@ bhat.predict <- function(model, x){
 }
 ```
 
+
 ##### Function for the confusion matrix
 ```{r}
 #' Title
@@ -187,6 +189,7 @@ p <- Pi(beta_hat(newdata,y))
 ```{r, warning=FALSE}
 df=data.frame(newy,p)
 ```
+
 ```{r, warning=FALSE}
 ggplot(df, aes(x=newy, y=p)) + geom_point() +  stat_smooth(method="glm", color="red", se=FALSE, method.args = list(family=binomial))
 ```
