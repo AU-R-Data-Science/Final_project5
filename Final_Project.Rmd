@@ -1,6 +1,6 @@
 ---
-title: "Final_Project"
-author: "Shawn Yates"
+title: "Final_Project Group5"
+author: "Mistral Joseph, Shawn Yates, Monday Nnakwe"
 date: "2022-11-14"
 output: html_document
 ---
