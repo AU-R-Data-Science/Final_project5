@@ -3,6 +3,7 @@ title: "Final_Project Group5"
 author: "Mistral Joseph, Shawn Yates, Monday Nnakwe"
 date: "2022-11-14"
 output: html_document
+bibliography: citations.bib
 ---
 
 ```{r, warning=FALSE}
@@ -227,6 +228,7 @@ Boostrap(x,y)
 
 ```
 
-
+## Reference
+These are the references used for Exercise 2 [@HW1; @HW11; @HW3; @HW2; @HW4; @HW9]
 
 
