@@ -62,6 +62,7 @@ grad <- function(beta, x, y){
 beta_hat <- function(x, y){
   x <- as.matrix(x)
   n <- nrow(x)
+  y<- as.matrix(y)
   intercept <- rep(1,n)
   x <- cbind(intercept,x)
   #initialize beta
@@ -69,46 +70,64 @@ beta_hat <- function(x, y){
   #use the optim function to perform gradient descent
   obj_fnOpti <- optim(beta, obj_fn, grad, x = x, y = y)
   #return coefficients
-  obj_fnOpti$par <- as.vector(obj_fnOpti$par)
-  names(obj_fnOpti$par) <- colnames(x)
-  return(obj_fnOpti$par)
+  coeff<- obj_fnOpti$par
+  return(coeff)
 }
 
+
 ##### Training our model with our generated dataset
-
-set.seed(8)
-y <- sample(c(0,1), size = 20, replace = TRUE)
-n <- length(y)
-x1 <- rpois(n, lambda = 3)
-x2 <- rnorm(n, -3, 5)
-x3 <- rexp(n, rate = 2)
-# int <- rep(1, n)
-x <- cbind(x1, x2, x3)
-data <- data.frame(y, x)
-data.x <- data[, -1]
-data.y <- data[, 1]
-
-model <- beta_hat(data.x, data.y)
-model
-
-#### The first number is the intercept. The next three numbers are the coefficient of for `x1, x2`  and  `x3`. These describe their log odds.
-
-
-#' Prediction function
+# writing code for the prediction on new data set Z
+#This function will take as input newdata, the origninal x and y
+#' Title
 #'
-#' @param model
+#' @param Z
 #' @param x a matrix of numerical coefficients of beta
+#' @param y a numerical vector
 #'
-#' @return beta hat
+#' @return
 #' @export
 #'
 #' @examples
-bhat.predict <- function(model, x){
+model_predict <- function(Z, x, y){
   x <- as.matrix(x)
   n <- nrow(x)
-  intercept <- rep(1, n)
+  y<- as.matrix(y)
+  intercept <- rep(1,n)
   x <- cbind(intercept,x)
-  return(Pi(x%*%model))
+  #initialize beta
+  beta <- (solve(t(x) %*% x))%*%(t(x) %*% y)
+  #use the optim function to perform gradient descent
+  obj_fnOpti <- optim(beta, obj_fn, grad, x=x, y=y)
+  #return coefficients
+  model<- obj_fnOpti$par
+  #writing the prediction function
+  Z <- as.matrix(Z)
+  n <- nrow(Z)
+  intercept <- rep(1,n)
+  Z <-  cbind(intercept,Z)
+  pred<- exp(Z%*%model)/(1+exp(Z%*%model))
+  return(pred)
+}
+
+
+
+#function that gives response 0,1 for y
+#' Title
+#'
+#' @param Z
+#' @param x a matrix of numerical coefficients of beta
+#' @param y a numerical vector
+#'
+#' @return
+#' @export
+#'
+#' @examples
+response<- function(Z,x,y){
+  y.prediction <- model_predict(Z,x,y)
+  glm.pred = rep ("0",nrow(Z))
+  glm.pred[y.prediction > 0.5]="1"
+  gpp <- factor(glm.pred)
+  return(gpp)
 }
 
 
@@ -125,7 +144,7 @@ bhat.predict <- function(model, x){
 #' @examples
 confM <- function(x, y){
   library(caret)
-  y.prediction <- bhat.predict(model, x)
+  y.prediction <- model_predict(x,x,y)
   glm.pred <- rep ("0",length(y))
   glm.pred[y.prediction > 0.5]="1"
   gpp <- factor(glm.pred)
@@ -133,14 +152,27 @@ confM <- function(x, y){
   return(confusionMatrix(data = gpp, reference = newy))
 }
 
+set.seed(8)
+y <- sample(c(0,1), size = 20, replace = TRUE)
+n <- length(y)
+x1 <- rpois(n, lambda = 3)
+x2 <- rnorm(n, -3, 5)
+x3 <- rexp(n, rate = 2)
+# int <- rep(1, n)
+x <- cbind(x1, x2, x3)
+data <- data.frame(y, x)
+data.x <- data[, -1]
+data.y <- data[, 1]
+beta_hat(data.x, data.y)
+
+true.model <- glm(y ~ x1 + x2 + x3, family=binomial(link ="logit"), data = data)
+true.model$coefficients
 
 #####  Test data.
-
 set.seed(51)
 n = length(y)
-newdata <- data.frame(x1 =rpois(n,lambda = 3), x2 =runif(n,-1, 1), x3 = rexp(n, rate= 5) )
-newy <- sample(c(0,1), size = n, replace = TRUE)
-
+newdata <- data.frame(x1 =rpois(15,lambda = 3), x2 =runif(15,-1, 1), x3 = rexp(15, rate= 5) )
+newy <- sample(c(0,1), size = 15, replace = TRUE)
 
 ##### Outputs from the confusion matrix
 
@@ -148,11 +180,6 @@ conf.mat <- confM(newdata,newy)
 paste("False Discovery Rate is", conf.mat$table[1,2]/(conf.mat$table[1,1] + conf.mat$table[1,2]))
 paste("Diagnositic odds Ratio is", (conf.mat$table[1,1]*conf.mat$table[2,2])/(conf.mat$table[1,2]*conf.mat$table[2,1]))
 conf.mat
-
-
-p <- Pi(beta_hat(newdata,y))
-df=data.frame(newy,p)
-ggplot(df, aes(x=newy, y=p)) + geom_point() +  stat_smooth(method="glm", color="red", se=FALSE, method.args = list(family=binomial))
 
 #' bootstrap function
 #' boostrap confidence interval
@@ -187,3 +214,13 @@ Boostrap <- function(x, y, alpha = 0.05, R = 20, seed = NULL, ...){
 Boostrap(x,y)
 
 
+#checking prediction
+(predict(true.model,newdata, type="response"))
+model_predict(newdata, data.x, data.y)
+
+
+m <- seq(-3, 3, by = 0.01)
+n <- exp(2-2*m)/(1+exp(2-2*m))
+beta_hat(m,n)
+yp<- model_predict(m,m,n)
+plot(m,yp, "l")
