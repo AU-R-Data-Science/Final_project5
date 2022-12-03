@@ -1,0 +1,85 @@
+---
+title: "lsoptim_vignette"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{lsoptim_vignette}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+The package helps the user  in building a logistic regression. This package help 
+
+1) to estimate logistic regression model parameters; 
+
+3) Give the boostrap confidence intervals for each parameter; 
+
+3) Help in fit logistic regression curves(using ggplot2); 
+
+4) To create confusion matrix. 
+
+Here are some detail how to use this package 
+
+
+```{r setup, eval=FALSE}
+library(lsoptim)
+#basic example code
+set.seed(8)
+y <- sample(c(0,1), size = 20, replace = TRUE)
+n <- length(y)
+x1 <- rpois(n, lambda = 3)
+x2 <- rnorm(n, -3, 5)
+x3 <- rexp(n, rate = 2)
+# int <- rep(1, n)
+x <- cbind(x1, x2, x3)
+data <- data.frame(y, x)
+data.x <- data[, -1]
+data.y <- data[, 1]
+
+```
+
+## logistic_regression function will provide the coefficient estimate beta. data.X is the matrix and data.Y is the binary response 
+```{r, warning=FALSE, eval=FALSE}
+beta_hat(data.x, data.y)
+```
+
+## bhat.predict function and give the  estimated prediction using beta_hat function
+```{r, warning=FALSE, eval=FALSE}
+#checking prediction
+(predict(true.model,newdata, type="response"))
+model_predict(newdata, data.x, data.y)
+```
+## confM  function  give the confidence matrice using X and Y matrice. The confusion matrix, also known as an error matrix,nis a specific table layout that allows visualization of the performance of an algorithm.
+
+```{r, warning=FALSE, eval=FALSE}
+set.seed(51)
+n = length(y)
+newdata <- data.frame(x1 =rpois(15,lambda = 3), x2 =runif(15,-1, 1), x3 = rexp(15, rate= 5) )
+newy <- sample(c(0,1), size = 15, replace = TRUE)
+conf.mat <- confM(newdata,newy)
+paste("False Discovery Rate is", conf.mat$table[1,2]/(conf.mat$table[1,1] + conf.mat$table[1,2]))
+paste("Diagnositic odds Ratio is", (conf.mat$table[1,1]*conf.mat$table[2,2])/(conf.mat$table[1,2]*conf.mat$table[2,1]))
+```
+
+Boostraping is any test that uses random sampling with replacement. Boostrapping assigns measure of accuracy to sample estimate such as confidence interval.
+```{r, eval=FALSE}
+set.seed(8)
+y <- sample(c(0,1), size = 20, replace = TRUE)
+n <- length(y)
+x1 <- rpois(n, lambda = 3)
+x2 <- rnorm(n, -3, 5)
+x3 <- rexp(n, rate = 2)
+# int <- rep(1, n)
+x <- cbind(x1, x2, x3)
+data <- data.frame(y, x)
+data.x <- data[, -1]
+data.y <- data[, 1]
+Boostrap <- Boostrap(data.x, data.y, alpha= 0.05, R = 20)
+```

@@ -13,3 +13,7 @@ Encoding: UTF-8
 LazyData: true
 Imports: ggplot2, dplyr, caret,   lattice
 RoxygenNote: 7.2.1
+Suggests: 
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr
